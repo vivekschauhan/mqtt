@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" monitorInterval="5">
+    <!--
+     Configuration of system log files
+
+     This file controls logging levels of application categories. From least to
+     most verbose the levels are: error, warn, info, debug. Use debug only when
+     troubleshooting. Changes to logging levels take effect immediately and do
+     not require restarting the application. This file is for advanced users.
+
+     For information about using and changing this file, see "Troubleshooting
+     with log4j file" in the "Activity tracking and logs" chapter of the manual.
+
+     ***************************************************
+     You can change levels of categories below this line
+     ***************************************************
+    -->
+    <Loggers>
+        <Logger name="com.axway" level="INFO"/>
+
+        <Root level="ERROR">
+            <AppenderRef ref="Console"/>
+        </Root>
+    </Loggers>
+
+    <Appenders>
+        <RollingFile name="NodeAppender"
+                     fileName="../logs/mqtt.log"
+                     filePattern="../logs/mqtt.%i.log">
+            <!-- use this pattern to prevent CRLF injection. It will change \n and \r characters in the message to _ -->
+            <PatternLayout pattern="%d{DEFAULT} - %-5level [%t] (%c{1}) - %replace{%msg}{[\r\n]}{_}%n"/>
+            <!-- use this pattern to ignore CRLF injection. -->
+            <!--<PatternLayout pattern="%d{DEFAULT} - %-5level [%t] (%c{1}) - %enc{%msg}%n"/>-->
+            <Policies>
+                <SizeBasedTriggeringPolicy size="10 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="10"/>
+        </RollingFile>
+
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{DEFAULT}  - %-5level [%t] (%c{1}) - %msg%n"/>
+        </Console>
+    </Appenders>
+
+</Configuration>
