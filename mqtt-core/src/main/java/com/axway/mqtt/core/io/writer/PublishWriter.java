@@ -51,11 +51,13 @@ public class PublishWriter extends PacketWriter
     protected void writeVariableHeader(OutputStream out) throws IOException
     {
         writeString(out, getPacket().getTopic(), "Topic");
-        writeInt(out, getPacket().getPacketId(), "Packet Identifier");
+        if(getPacket().getQos() != 0)
+            writeInt(out, getPacket().getPacketId(), "Packet Identifier");
     }
 
     protected void writePayload(OutputStream out) throws IOException
     {
-        writeBytes(out, getPacket().getPayload(), "Application Message");
+        writeBytes(out, getPacket().getPayload(), "Application Message (bytes)");
+        getLogger().info("Application Message (String) : " + new String(getPacket().getPayload()));
     }
 }

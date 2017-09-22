@@ -32,6 +32,8 @@
 
     <modules>
         <module>mqtt-core</module>
+        <module>mqtt-transport-core</module>
+        <module>mqtt-transport-server</module>
         <module>mqtt-server</module>
     </modules>
 

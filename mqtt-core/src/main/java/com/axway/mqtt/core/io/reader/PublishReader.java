@@ -43,11 +43,13 @@ public class PublishReader extends PacketReader
     protected void readVariableHeader(InputStream in) throws IOException
     {
         getPacket().setTopic(readString(in, "Topic"));
-        getPacket().setPacketId(readInt(in, "Packet Identifier"));
+        if(getPacket().getQos() != 0)
+            getPacket().setPacketId(readInt(in, "Packet Identifier"));
     }
 
     protected void readPayload(InputStream in) throws IOException
     {
-        getPacket().setPayload(readBytes(in, in.available(), "Application Message"));
+        getPacket().setPayload(readBytes(in, in.available(), "Application Message (bytes)"));
+        getLogger().info("Application Message (String) : " + new String(getPacket().getPayload()));
     }
 }

@@ -34,6 +34,7 @@ public abstract class PacketWriter
         packetTypeAndFlags <<= 4;
         // - com.axway.mqtt.common.Packet Flag
         packetTypeAndFlags |= getPacketTypeFlag();
+        getLogger().info("Writing Packet : " + packet.getMqttPacketType());
         writeByte(out, packetTypeAndFlags, "Packet Type and Flags");
 
         // Get variable header and payload

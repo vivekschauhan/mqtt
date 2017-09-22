@@ -246,9 +246,15 @@ public enum MqttPacket
         int packetType = PacketReader.getPacketType(packetTypeAndFlags);
         inputStream.reset();
 
-        PacketReader packetReader = MqttPacket.forPacketType(packetType).getReader();
-        packetReader.read(inputStream);
-        return packetReader.getPacket();
+        MqttPacket mqttPacket = MqttPacket.forPacketType(packetType);
+        Packet packet = null;
+        if(mqttPacket != null)
+        {
+            PacketReader packetReader = mqttPacket.getReader();
+            packetReader.read(inputStream);
+            packet = packetReader.getPacket();
+        }
+        return packet;
     }
 
     public final static void writePacket(Packet packet, OutputStream outputStream)

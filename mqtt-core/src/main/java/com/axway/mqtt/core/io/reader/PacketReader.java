@@ -48,7 +48,7 @@ public abstract class PacketReader
     {
         // Fix Header - Already processed
         // - com.axway.mqtt.common.Packet Type and Flags
-        byte packetTypeAndFlags = readByte(inputStream, "Packet Type and Flags");
+        byte packetTypeAndFlags = readByte(inputStream);
         if(MqttPacket.forPacketType(getPacketType(packetTypeAndFlags)) != getPacket().getMqttPacketType())
             throw new IOException("Unexpected packet type");
 
@@ -56,6 +56,12 @@ public abstract class PacketReader
         // - Remaining Length
         remainingLen = readRemainingLength(inputStream);
         // Variable Header
+        boolean isComplete = (remainingLen != -1 && inputStream.available() >= remainingLen );
+        if(!isComplete)
+            throw new IOException("Incomplete packet");
+
+        getLogger().info("Reading Packet : " + getPacket().getMqttPacketType());
+        getLogger().info("Packet Type and Flags :" + Util.getBitString(packetTypeAndFlags));
         readVariableHeader(inputStream);
         // com.axway.mqtt.common.Payload
         readPayload(inputStream);
@@ -150,6 +156,12 @@ public abstract class PacketReader
         byte digit = 0;
         do
         {
+            if(in.available() <= 0)
+            {
+                len = -1;
+                break;
+            }
+
             digit = (byte)in.read();
             len += (digit & 127) * multiplier;
             multiplier *= 128;
