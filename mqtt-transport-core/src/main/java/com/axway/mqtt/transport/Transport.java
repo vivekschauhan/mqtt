@@ -17,5 +17,5 @@ public interface Transport
 
     void write(Packet packet) throws IOException;
 
-    void close() throws IOException;
+    void close(String reason) throws IOException;
 }

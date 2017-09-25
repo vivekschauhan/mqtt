@@ -39,15 +39,16 @@ public class SocketTransportServer extends AbstractTransportServer implements Ru
             this.selector = Selector.open();
             serverChannel = ServerSocketChannel.open();
             serverChannel.configureBlocking(false);
-            serverChannel.bind(new InetSocketAddress("localhost", transportConfig.getPort()));
+            serverChannel.bind(new InetSocketAddress(transportConfig.getPort()));
             serverChannel.register(selector, SelectionKey.OP_ACCEPT);
 
             new Thread(this).start();
         }
     }
 
-    public void close() throws IOException
+    public void close(String reason) throws IOException
     {
+        logger.info("Closing server : " + reason);
         if(isConnected())
             serverChannel.close();
     }
@@ -79,8 +80,9 @@ public class SocketTransportServer extends AbstractTransportServer implements Ru
         }
         catch (Exception e)
         {
-            logger.info(e.getMessage());
+            logger.info("Exception in server thread " + e.getMessage());
         }
+
     }
 
     private void accept(SelectionKey key) throws IOException
@@ -91,22 +93,19 @@ public class SocketTransportServer extends AbstractTransportServer implements Ru
             return;
 
         clientChannel.configureBlocking(false);
-        Socket clientSocket = clientChannel.socket();
-        SocketAddress remoteAddress = clientSocket.getRemoteSocketAddress();
-
-        logger.info("Connected to client " + remoteAddress);
         clientChannel.register(this.selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+
+        Transport mqttClient = new SocketTransportClient(clientChannel);
+        mqttClient.connect();
+        transportClientsMap.put(clientChannel, mqttClient);
     }
 
     public void read(SelectionKey key) throws IOException
     {
-
         Transport mqttClient = transportClientsMap.get(key.channel());
-        if (mqttClient == null)
-        {
-            mqttClient = new SocketTransportClient(key);
-            transportClientsMap.put((SocketChannel) key.channel(), mqttClient);
-        }
-        mqttClient.read();
+        if (mqttClient != null)
+            mqttClient.read();
+        else
+            mqttClient.close("Unregistered client");
     }
 }

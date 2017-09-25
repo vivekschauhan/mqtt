@@ -5,6 +5,7 @@ import com.axway.mqtt.transport.CallbackRegistry;
 import com.axway.mqtt.transport.Transport;
 import com.axway.mqtt.transport.TransportServerFactory;
 import com.axway.mqtt.transport.config.SocketTransportConfig;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
@@ -13,21 +14,34 @@ import java.io.IOException;
  */
 public class MqttServer
 {
+    private static Logger logger = Logger.getLogger(MqttServer.class);
+    private static int DEFAULT_PORT = 1883;
+
     public static void main(String argv[]) {
         try
         {
 
             CallbackRegistry.registerCallback(new MqttSeverCallback());
 
-            System.setProperty("com.axway.mqtt.transportFactory", TransportServerFactory.class.getName());
-            SocketTransportConfig socketTransportConfig= new SocketTransportConfig("localhost", 1883);
+            int port = DEFAULT_PORT;
+            String mqttPort = System.getProperty("transport.mqtt.port");
+            try
+            {
+                port = Integer.parseInt(mqttPort);
+            }
+            catch (NumberFormatException e)
+            {
+                // Use default port
+            }
+            SocketTransportConfig socketTransportConfig= new SocketTransportConfig("localhost", port);
             Transport server = TransportServerFactory.create(socketTransportConfig);
             server.connect();
             Runtime.getRuntime().addShutdownHook(new Thread() {
                 @Override
                 public void run() {
                     try {
-                        server.close();
+                        logger.info("Closing Server");
+                        server.close("Server shutdown");
                     } catch (Exception exp) {
 
                     }

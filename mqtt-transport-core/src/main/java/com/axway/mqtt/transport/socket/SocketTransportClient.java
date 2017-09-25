@@ -32,10 +32,23 @@ public class SocketTransportClient implements Transport
         this.clientAddress = new InetSocketAddress(transportConfig.getHost(), transportConfig.getPort());
     }
 
+    SocketTransportClient(SocketChannel channel) throws IOException
+    {
+        this.channel = channel;
+        if(channel == null)
+            throw new IOException("No channel");
+        clientAddress = channel.getRemoteAddress();
+    }
+
     SocketTransportClient(SelectionKey key) throws IOException
     {
         channel = (SocketChannel)key.channel();
         clientAddress = channel.getRemoteAddress();
+    }
+
+    public SocketChannel getChannel()
+    {
+        return channel;
     }
 
     public boolean isConnected()
@@ -59,7 +72,11 @@ public class SocketTransportClient implements Transport
             else
                 throw new IOException("No client address");
         }
-        logger.info("Already connected");
+        for(TransportCallback transportCallback : CallbackRegistry.getCallbacks())
+        {
+            if (transportCallback != null)
+                transportCallback.onConnect(this);
+        }
     }
 
     public Packet read() throws IOException
@@ -76,11 +93,8 @@ public class SocketTransportClient implements Transport
                 buffer.flip();
                 if (readCount == -1)
                 {
-                    Socket clientSocket = channel.socket();
-                    SocketAddress remoteAddress = clientSocket.getRemoteSocketAddress();
-                    logger.info("Closing connection for client " + remoteAddress);
-                    close();
-                    throw new IOException("Connection closed");
+                    close("Client disconnected");
+                    break;
                 }
                 dataLen += readCount;
                 if(data == null)
@@ -112,6 +126,8 @@ public class SocketTransportClient implements Transport
                     throw e;
             }
         } while (true);
+
+        return null;
     }
 
     public void write(Packet packet) throws IOException
@@ -129,8 +145,17 @@ public class SocketTransportClient implements Transport
         }
     }
 
-    public void close() throws IOException
+    public void close(String reason) throws IOException
     {
+        Socket clientSocket = channel.socket();
+        SocketAddress remoteAddress = clientSocket.getRemoteSocketAddress();
+        logger.info("Closing connection for client " + remoteAddress + " : " + reason);
+
         channel.close();
+        for(TransportCallback transportCallback : CallbackRegistry.getCallbacks())
+        {
+            if (transportCallback != null)
+                transportCallback.onClose(this);
+        }
     }
 }

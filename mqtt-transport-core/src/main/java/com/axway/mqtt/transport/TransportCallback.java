@@ -7,6 +7,8 @@ import com.axway.mqtt.core.packet.Packet;
  */
 public interface TransportCallback
 {
+    void onConnect(Transport client);
     void onPacketReceive(Packet packet, Transport client);
     void onPacketSend(Packet packet, Transport client);
+    void onClose(Transport client);
 }

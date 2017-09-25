@@ -20,6 +20,8 @@ import com.axway.mqtt.transport.socket.SocketTransportClient;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.net.SocketAddress;
+import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 
 /**
@@ -28,6 +30,25 @@ import java.util.ArrayList;
 public class MqttSeverCallback implements TransportCallback
 {
     static Logger logger = Logger.getLogger(SocketTransportClient.class);
+
+    public void onConnect(Transport client)
+    {
+        try
+        {
+            Session session = new Session();
+            session.setTransportClient(client);
+            SessionManager.instance().addSession(client, session);
+
+            SocketChannel clientSocket = ((SocketTransportClient)client).getChannel();
+            SocketAddress remoteAddress = clientSocket.getRemoteAddress();
+
+            logger.info("Connected to client " + remoteAddress);
+        }
+        catch (IOException e)
+        {
+            // do nothing
+        }
+    }
 
     public void onPacketReceive(Packet packet, Transport client)
     {
@@ -38,16 +59,18 @@ public class MqttSeverCallback implements TransportCallback
             switch (packet.getMqttPacketType()) {
                 case CONNECT: {
                     Connect connect = (Connect) packet;
+                    Session session = SessionManager.instance().getSession(client);
+                    if (session != null) {
+                        session.setClientId(connect.getClientId());
 
-                    Session session = new Session();
-                    session.setClientId(connect.getClientId());
-                    session.setTransportClient(client);
-                    SessionManager.instance().addSession(client, session);
+                        Connack connack = new Connack();
+                        connack.setSessionPresent(false);
+                        connack.setReturnCode(0);
+                        client.write(connack);
+                    }
+                    else
+                        client.close("No client session");
 
-                    Connack connack = new Connack();
-                    connack.setSessionPresent(false);
-                    connack.setReturnCode(0);
-                    client.write(connack);
                     break;
                 }
                 case PUBLISH: {
@@ -118,7 +141,7 @@ public class MqttSeverCallback implements TransportCallback
                     client.write(suback);
 
                     Session session = SessionManager.instance().getSession(client);
-                    if (session != null) {
+                    if (session != null && session.getClientId() != null) {
                         for (SubscribeTopicFilter topic : subscribe.getTopicFilters()) {
                             SubscriptionStore.instance().addSubscription(topic.getTopicFilter(), session);
                         }
@@ -141,8 +164,7 @@ public class MqttSeverCallback implements TransportCallback
                     break;
                 }
                 case DISCONNECT: {
-                    SessionManager.instance().removeSession(client);
-                    client.close();
+                    client.close("Client disconnect received");
                     break;
                 }
             }
@@ -209,8 +231,7 @@ public class MqttSeverCallback implements TransportCallback
                     break;
                 }
                 case DISCONNECT: {
-                    SessionManager.instance().removeSession(client);
-                    client.close();
+                    client.close("Client disconnect sent");
                     break;
                 }
             }
@@ -219,6 +240,10 @@ public class MqttSeverCallback implements TransportCallback
         {
             logger.info(e.getMessage());
         }
+    }
 
+    public void onClose(Transport client)
+    {
+        SessionManager.instance().removeSession(client);
     }
 }
