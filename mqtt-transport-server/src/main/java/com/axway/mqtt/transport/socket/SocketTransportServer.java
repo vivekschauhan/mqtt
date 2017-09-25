@@ -93,7 +93,7 @@ public class SocketTransportServer extends AbstractTransportServer implements Ru
             return;
 
         clientChannel.configureBlocking(false);
-        clientChannel.register(this.selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+        clientChannel.register(this.selector, SelectionKey.OP_READ);
 
         Transport mqttClient = new SocketTransportClient(clientChannel);
         mqttClient.connect();
